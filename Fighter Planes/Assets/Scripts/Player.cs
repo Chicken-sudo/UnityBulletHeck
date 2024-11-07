@@ -1,16 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class Player : MonoBehaviour
 {
     public float playerSpeed = 7.0f;
     public int lives = 3;
-    public int score = 0;
     private float hInput;
     private float vInput;
 
     public GameObject Bullet;
+    public GameObject Explosion; 
     
     // Start is called before the first frame update
     void Start()
@@ -45,6 +47,23 @@ public class Player : MonoBehaviour
         //press SPACE to create bullets
         if(Input.GetKeyDown(KeyCode.Space)){
             Instantiate(Bullet, transform.position, Quaternion.identity);
+        }
+    }
+
+    public void Death(){
+        lives--;
+        GameObject.Find("game manager").GetComponent<gameManager>().loselife(lives);
+        if(lives == 0){
+            Instantiate(Explosion, transform.position, Quaternion.identity);
+            Destroy(this.gameObject);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D getCoin){
+        if(getCoin.tag == "Respawn"){
+            //player gets coin
+            GameObject.Find("game manager").GetComponent<gameManager>().EarnScore(1);
+            Destroy(getCoin.gameObject);
         }
     }
 }
