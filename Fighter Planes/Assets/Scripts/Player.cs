@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
 public class Player : MonoBehaviour
 {
@@ -10,14 +8,20 @@ public class Player : MonoBehaviour
     public int lives = 3;
     private float hInput;
     private float vInput;
+    private int shoot = 1;
+    private bool hasShield = false;
+
+    private gameManager gameManager;
 
     public GameObject Bullet;
-    public GameObject Explosion; 
+    public GameObject Explosion;
+    public GameObject thruster;
+    public GameObject shield;
     
     // Start is called before the first frame update
     void Start()
     {
-        
+        gameManager = GameObject.Find("game manager").GetComponent<gameManager>();
     }
 
     // Update is called once per frame
@@ -46,24 +50,97 @@ public class Player : MonoBehaviour
     void Shooting(){
         //press SPACE to create bullets
         if(Input.GetKeyDown(KeyCode.Space)){
-            Instantiate(Bullet, transform.position, Quaternion.identity);
+            switch(shoot){
+                case 1:
+                    Instantiate(Bullet, transform.position + new Vector3(0, 0.3f, 0), Quaternion.identity);
+                    break;
+                case 2:
+                    Instantiate(Bullet, transform.position + new Vector3(0.5f, 0.3f, 0), Quaternion.identity);
+                    Instantiate(Bullet, transform.position + new Vector3(-0.5f, 0.3f, 0), Quaternion.identity);
+                    break;
+                case 3:
+                    Instantiate(Bullet, transform.position + new Vector3(0, 0.3f, 0), Quaternion.identity);
+                    Instantiate(Bullet, transform.position + new Vector3(0.5f, 0.3f, 0), Quaternion.Euler(0, 0, -30f));
+                    Instantiate(Bullet, transform.position + new Vector3(-0.5f, 0.3f, 0), Quaternion.Euler(0, 0, 30f));
+                    break;
+            }
         }
     }
 
     public void Death(){
-        lives--;
-        GameObject.Find("game manager").GetComponent<gameManager>().loselife(lives);
+        //player loses a life and gets a game over if lives=0
+        if(hasShield == false){
+            lives--;
+        gameManager.loselife(lives);
         if(lives == 0){
             Instantiate(Explosion, transform.position, Quaternion.identity);
             Destroy(this.gameObject);
         }
+        }else if (hasShield == true){
+            hasShield = false;
+            gameManager.PlayPowerDown();
+            shield.gameObject.SetActive(false);
+        }  
+    }
+
+    IEnumerator SpeedDown(){
+        yield return new WaitForSeconds(3f);
+        playerSpeed = 7.0f;
+        gameManager.UpdatePowerUpText("");
+        gameManager.PlayPowerDown();
+        thruster.gameObject.SetActive(false);
+    }
+
+    IEnumerator ShootDown(){
+        yield return new WaitForSeconds(3f);
+        shoot = 1;
+        gameManager.UpdatePowerUpText("");
+        gameManager.PlayPowerDown();
+    }
+
+    IEnumerator SheildText(){
+        yield return new WaitForSeconds(3f);
+        gameManager.UpdatePowerUpText("");
     }
 
     private void OnTriggerEnter2D(Collider2D getCoin){
         if(getCoin.tag == "Respawn"){
             //player gets coin
-            GameObject.Find("game manager").GetComponent<gameManager>().EarnScore(1);
+            gameManager.EarnScore(1);
             Destroy(getCoin.gameObject);
+        } else if(getCoin.tag == "Item"){
+            //player gets powerup
+            gameManager.PlayPowerUp();
+            Destroy(getCoin.gameObject);
+            int power = Random.Range(1, 5);
+            switch(power){
+                case 1:
+                    //speed
+                    playerSpeed = 10f;
+                    gameManager.UpdatePowerUpText("GOT SPEED");
+                    thruster.gameObject.SetActive(true);
+                    StartCoroutine(SpeedDown());
+                    break;
+                case 2:
+                    //double shot
+                    shoot = 2;
+                    gameManager.UpdatePowerUpText("GOT DOUBLE");
+                    StartCoroutine(ShootDown());
+                    break;
+                case 3:
+                    //triple shot
+                    shoot = 3;
+                    gameManager.UpdatePowerUpText("GOT TRIPLE");
+                    StartCoroutine(ShootDown());
+                    break;
+                case 4:
+                    //shield
+                    gameManager.UpdatePowerUpText("GOT SHIELD");
+                    hasShield = true;
+                    StartCoroutine(SheildText());
+                    shield.gameObject.SetActive(true);
+                    break;
+            }
         }
     }
 }
